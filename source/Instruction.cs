@@ -1,4 +1,4 @@
-class Instruction
+struct Instruction
 {
     public Opcode Opcode;
     public Value Value;

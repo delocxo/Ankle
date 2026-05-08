@@ -15,11 +15,14 @@ class Compiler
     string target;
     List<Instruction> instructions = new List<Instruction>();
     List<Value> constants = new List<Value>();
-    Dictionary<string, Variable> variables = new Dictionary<string, Variable>();
+    Dictionary<string, Variable>?[] scopeStack = new Dictionary<string, Variable>?[64];
+    int scopeDepth;
+    int nextSlot;
 
     public Compiler(string target)
     {
         this.target = target;
+        scopeStack[0] = new Dictionary<string, Variable>();
     }
 
     public void Compile(List<Node> nodes)
@@ -33,10 +36,39 @@ class Compiler
 
     void CompileBlock(List<Node> nodes)
     {
+        scopeDepth++;
+        scopeStack[scopeDepth] = new Dictionary<string, Variable>();
         foreach (Node node in nodes)
         {
             CompileStatement(node);
         }
+        scopeStack[scopeDepth] = null;
+        scopeDepth--;
+    }
+
+    Dictionary<string, Variable> CurrentScope()
+    {
+        Dictionary<string, Variable>? scope = scopeStack[scopeDepth];
+        if (scope == null)
+        {
+            throw new Exception("Compiler scope not created");
+        }
+        return scope;
+    }
+
+    Variable? ResolveVariable(string target)
+    {
+        int currentDepth = scopeDepth;
+        while (currentDepth >= 0)
+        {
+            var scope = scopeStack[currentDepth];
+            if (scope != null && scope.TryGetValue(target, out Variable? variable))
+            {
+                return variable;
+            }
+            currentDepth--;
+        }
+        return null;
     }
 
     void CompileStatement(Node node)
@@ -46,15 +78,16 @@ class Compiler
             case VariableNode variableNode:
                 {
                     CompileExpression(variableNode.Expression);
-                    if (variables.ContainsKey(variableNode.Name))
+                    var scope = CurrentScope();
+
+                    if (scope.ContainsKey(variableNode.Name))
                     {
                         throw new Errno($"'{variableNode.Name}' already exist", node.Position, ErrorLocation.Compiler);
                     }
 
-                    int slot = variables.Count;
-                    variables.Add(variableNode.Name, new Variable(variableNode.Const, slot));
-
-                    Emit(Opcode.StoreVar, new Value(slot), node.Position);
+                    scope.Add(variableNode.Name, new Variable(variableNode.Const, nextSlot));
+                    Emit(Opcode.StoreVar, new Value(nextSlot), node.Position);
+                    nextSlot++;
                     break;
                 }
 
@@ -91,7 +124,9 @@ class Compiler
 
             case AssignNode assignNode:
                 {
-                    if (!variables.TryGetValue(assignNode.Name, out Variable? variable))
+                    Variable? variable = ResolveVariable(assignNode.Name);
+
+                    if (variable == null)
                     {
                         throw new Errno($"'{assignNode.Name}' does not exist", assignNode.Position, ErrorLocation.Compiler);
                     }
@@ -159,6 +194,18 @@ class Compiler
                     Emit(Opcode.StoreVar, new Value(variable.Slot), assignNode.OperatorPosition);
                     break;
                 }
+
+            case WhileNode whileNode:
+                {
+                    int loopStart = instructions.Count;
+                    CompileExpression(whileNode.Expression);
+                    int jumpToEnd = EmitJumpIfFalse(0, whileNode.Position);
+                    CompileBlock(whileNode.Nodes);
+                    EmitJump(loopStart, whileNode.Position);
+                    int afterLoop = instructions.Count;
+                    PatchJump(jumpToEnd, afterLoop);
+                    break;
+                }
         }
     }
 
@@ -178,7 +225,9 @@ class Compiler
 
     void PatchJump(int index, int target)
     {
-        instructions[index].Value = new Value(target);
+        Instruction instruction = instructions[index];
+        instruction.Value = new Value(target);
+        instructions[index] = instruction;
     }
 
     void CompileExpression(Expression expression)
@@ -194,7 +243,8 @@ class Compiler
 
             case NameExpression nameExpression:
                 {
-                    if (!variables.TryGetValue(nameExpression.Name, out Variable? variable))
+                    Variable? variable = ResolveVariable(nameExpression.Name);
+                    if (variable == null)
                     {
                         throw new Errno($"'{nameExpression.Name}' does not exist", expression.Position, ErrorLocation.Compiler);
                     }
@@ -320,7 +370,7 @@ class Compiler
             write.Write(instruction.Position.Column);
         }
 
-        write.Write(variables.Count);
+        write.Write(nextSlot);
     }
 
     void SaveValue(Value value, BinaryWriter write)

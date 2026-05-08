@@ -1,47 +1,5 @@
-let seed = 12;
+if (true){
+    let x = 100;
+}
 
-let step1 = seed * 21 + 17;
-let rand1 = step1 % 100;
-print(rand1);
-
-let step2 = rand1 * 21 + 17;
-let rand2 = step2 % 100;
-print(rand2);
-
-let step3 = rand2 * 21 + 17;
-let rand3 = step3 % 100;
-print(rand3);
-
-let step4 = rand3 * 21 + 17;
-let rand4 = step4 % 100;
-print(rand4);
-
-let step5 = rand4 * 21 + 17;
-let rand5 = step5 % 100;
-print(rand5);
-
-let step6 = rand5 * 21 + 17;
-let rand6 = step6 % 100;
-print(rand6);
-
-let step7 = rand6 * 21 + 17;
-let rand7 = step7 % 100;
-print(rand7);
-
-let step8 = rand7 * 21 + 17;
-let rand8 = step8 % 100;
-print(rand8);
-
-let step9 = rand8 * 21 + 17;
-let rand9 = step9 % 100;
-print(rand9);
-
-let step10 = rand9 * 21 + 17;
-let rand10 = step10 % 100;
-print(rand10);
-
-let dice = rand10 % 6 + 1;
-print(dice);
-
-let coin = rand10 % 2;
-print(coin);
+print(x);

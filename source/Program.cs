@@ -1,4 +1,6 @@
-﻿try
+﻿using System.Diagnostics;
+
+try
 {
     string code = File.ReadAllText("main.ankle");
 
@@ -21,7 +23,10 @@
     compiler.Save();
 
     Vm vm = new Vm("main.anklec");
+    Stopwatch stopwatch = Stopwatch.StartNew();
     vm.Run();
+    stopwatch.Stop();
+    Console.WriteLine(stopwatch.ElapsedMilliseconds);
 }
 catch (Errno err)
 {
