@@ -55,4 +55,17 @@ struct Value
             case ValueKind.Void: Console.Write("Void"); break;
         }
     }
+
+    public object? GetValue()
+    {
+        switch (ValueKind)
+        {
+            case ValueKind.Int: return IntValue;
+            case ValueKind.Float: return FloatValue;
+            case ValueKind.String: return StringValue;
+            case ValueKind.Bool: return BoolValue;
+            case ValueKind.Void: return "Void";
+        }
+        return "N\\A";
+    }
 }

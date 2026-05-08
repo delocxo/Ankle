@@ -12,6 +12,8 @@ public enum TokenType
     Print,
     If,
     Else,
+    Set,
+    While,
     EOF,
 
     LeftParen,
@@ -32,6 +34,12 @@ public enum TokenType
     RightAngleEquals,
     LeftCurly,
     RightCurly,
+    Increment,
+    Decrement,
+    PlusEqual,
+    MinusEqual,
+    TimesEqual,
+    DivideEqual
 
 }
 
@@ -74,7 +82,9 @@ public static class TokenTypeDicts
         { "const", TokenType.Const },
         { "print", TokenType.Print },
         {"if", TokenType.If},
-        {"else", TokenType.Else}
+        {"else", TokenType.Else},
+        {"set", TokenType.Set},
+        {"while", TokenType.While}
     };
 
     public static Dictionary<char, TokenType> symbols = new Dictionary<char, TokenType>()
@@ -100,6 +110,12 @@ public static class TokenTypeDicts
         {"==", TokenType.Equals},
         {"!=", TokenType.NotEquals},
         {"<=", TokenType.LeftAngleEquals},
-        {">=", TokenType.RightAngleEquals}
+        {">=", TokenType.RightAngleEquals},
+        {"++", TokenType.Increment},
+        {"--", TokenType.Decrement},
+        {"+=", TokenType.PlusEqual},
+        {"-=", TokenType.MinusEqual},
+        {"*=", TokenType.TimesEqual},
+        {"/=", TokenType.DivideEqual}
     };
 }

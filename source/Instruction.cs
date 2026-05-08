@@ -13,6 +13,6 @@ class Instruction
 
     public void Print()
     {
-        // Console.WriteLine($"Opcode: {Opcode} | Value: {Value.GetValue()}");
+        Console.WriteLine($"Opcode: {Opcode} | Value: {Value.GetValue()}");
     }
 }

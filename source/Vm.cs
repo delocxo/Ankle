@@ -331,6 +331,44 @@ class Vm
                     return true;
                 }
 
+            case Opcode.Mod:
+                {
+                    Value right = stack.Pop();
+                    Value left = stack.Pop();
+
+                    switch (right.ValueKind, left.ValueKind)
+                    {
+                        case (ValueKind.Int, ValueKind.Int):
+                            {
+                                stack.Push(new Value(left.IntValue % right.IntValue));
+                                break;
+                            }
+
+                        case (ValueKind.Float, ValueKind.Int):
+                            {
+                                stack.Push(new Value(left.FloatValue % right.IntValue));
+                                break;
+                            }
+
+                        case (ValueKind.Int, ValueKind.Float):
+                            {
+                                stack.Push(new Value(left.IntValue % right.FloatValue));
+                                break;
+                            }
+
+                        case (ValueKind.Float, ValueKind.Float):
+                            {
+                                stack.Push(new Value(left.FloatValue % right.FloatValue));
+                                break;
+                            }
+
+                        default:
+                            throw new Errno($"'{left.ValueKind} % {left.ValueKind}' is invalid", instruction.Position, ErrorLocation.VirtualMachine);
+                    }
+
+                    return true;
+                }
+
             case Opcode.Equals:
                 {
                     Value right = stack.Pop();

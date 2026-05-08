@@ -1,3 +1,5 @@
+using System.Net.NetworkInformation;
+
 class Node
 {
     public Position Position;
@@ -45,5 +47,35 @@ class IfNode : Node
         Nodes = nodes;
         HasElse = hasElse;
         ElseNodes = elseNodes;
+    }
+}
+
+class AssignNode : Node
+{
+    public string Name;
+    public Expression Expression;
+    public TokenType Operator;
+    public bool HasExpression;
+    public Position OperatorPosition;
+
+    public AssignNode(string name, Expression expression, TokenType op, bool hasExpression, Position operatorPosition, Position position) : base(position)
+    {
+        Name = name;
+        Expression = expression;
+        Operator = op;
+        HasExpression = hasExpression;
+        OperatorPosition = operatorPosition;
+    }
+}
+
+class WhileNode : Node
+{
+    public Expression Expression;
+    public List<Node> Nodes;
+
+    public WhileNode(Expression expression, List<Node> nodes, Position position) : base(position)
+    {
+        Expression = expression;
+        Nodes = nodes;
     }
 }

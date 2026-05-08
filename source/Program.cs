@@ -16,6 +16,8 @@
 
     compiler.Compile(nodes);
 
+    // compiler.Print();
+
     compiler.Save();
 
     Vm vm = new Vm("main.anklec");

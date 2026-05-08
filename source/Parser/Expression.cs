@@ -6,6 +6,8 @@ class Expression
     {
         Position = position;
     }
+
+    public static Expression Empty(Position position) => new Expression(position);
 }
 
 class LiteralExpression : Expression

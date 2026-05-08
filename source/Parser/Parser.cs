@@ -34,6 +34,16 @@ class Parser
                 nodes.Add(ParseIf());
                 continue;
             }
+            else if (Check(TokenType.Set))
+            {
+                nodes.Add(ParseAssign());
+                continue;
+            }
+            else if (Check(TokenType.While))
+            {
+                nodes.Add(ParseWhile());
+                continue;
+            }
 
             Next();
         }
@@ -97,6 +107,64 @@ class Parser
         }
 
         return new IfNode(expression, block, false, new List<Node>(), position);
+    }
+
+    AssignNode ParseAssign()
+    {
+        Position position = tokens[i].Position;
+
+        Consume(TokenType.Set);
+
+        string identifier = tokens[i].Value.StringValue;
+        Consume(TokenType.Identifier, "Expected identifier");
+
+        if (Check(TokenType.PlusEqual) ||
+        Check(TokenType.MinusEqual) ||
+        Check(TokenType.TimesEqual) ||
+        Check(TokenType.DivideEqual) ||
+        Check(TokenType.Equal))
+        {
+            Token op = tokens[i];
+
+            Next();
+
+            Expression expression = ParseExpression();
+
+            Consume(TokenType.Semicolon, "Expected ';'");
+
+            return new AssignNode(identifier, expression, op.Type, true, op.Position, position);
+        }
+
+        if (Check(TokenType.Increment) ||
+        Check(TokenType.Decrement))
+        {
+            Token op = tokens[i];
+
+            Next();
+
+            Consume(TokenType.Semicolon, "Expected ';'");
+
+            return new AssignNode(identifier, Expression.Empty(position), op.Type, false, op.Position, position);
+        }
+
+        throw new Errno("Invalid assign operator", position, ErrorLocation.Parser);
+    }
+
+    WhileNode ParseWhile()
+    {
+        Position position = tokens[i].Position;
+
+        Consume(TokenType.While);
+
+        Consume(TokenType.LeftParen, "Expected '('");
+
+        Expression expression = ParseExpression();
+
+        Consume(TokenType.RightParen, "Expected ')'");
+
+        List<Node> block = ParseBlock();
+
+        return new WhileNode(expression, block, position);
     }
 
     List<Node> ParseBlock()

@@ -1,9 +1,21 @@
+class Variable
+{
+    public bool Const;
+    public int Slot;
+
+    public Variable(bool constant, int slot)
+    {
+        Const = constant;
+        Slot = slot;
+    }
+}
+
 class Compiler
 {
     string target;
     List<Instruction> instructions = new List<Instruction>();
     List<Value> constants = new List<Value>();
-    Dictionary<string, int> variables = new Dictionary<string, int>();
+    Dictionary<string, Variable> variables = new Dictionary<string, Variable>();
 
     public Compiler(string target)
     {
@@ -40,7 +52,7 @@ class Compiler
                     }
 
                     int slot = variables.Count;
-                    variables.Add(variableNode.Name, slot);
+                    variables.Add(variableNode.Name, new Variable(variableNode.Const, slot));
 
                     Emit(Opcode.StoreVar, new Value(slot), node.Position);
                     break;
@@ -74,6 +86,77 @@ class Compiler
                         int afterIf = instructions.Count;
                         PatchJump(jumpToElse, afterIf);
                     }
+                    break;
+                }
+
+            case AssignNode assignNode:
+                {
+                    if (!variables.TryGetValue(assignNode.Name, out Variable? variable))
+                    {
+                        throw new Errno($"'{assignNode.Name}' does not exist", assignNode.Position, ErrorLocation.Compiler);
+                    }
+
+                    if (variable.Const)
+                    {
+                        throw new Errno($"'{assignNode.Name}' is a const and cant be set", assignNode.Position, ErrorLocation.Compiler);
+                    }
+
+                    Emit(Opcode.LoadVar, new Value(variable.Slot), assignNode.Position);
+
+                    if (assignNode.HasExpression)
+                    {
+                        CompileExpression(assignNode.Expression);
+                    }
+
+                    switch (assignNode.Operator)
+                    {
+                        case TokenType.PlusEqual:
+                            {
+                                Emit(Opcode.Add, new Value(ValueKind.Void), assignNode.OperatorPosition);
+                                break;
+                            }
+
+                        case TokenType.MinusEqual:
+                            {
+                                Emit(Opcode.Sub, new Value(ValueKind.Void), assignNode.OperatorPosition);
+                                break;
+                            }
+
+                        case TokenType.TimesEqual:
+                            {
+                                Emit(Opcode.Mul, new Value(ValueKind.Void), assignNode.OperatorPosition);
+                                break;
+                            }
+
+                        case TokenType.DivideEqual:
+                            {
+                                Emit(Opcode.Div, new Value(ValueKind.Void), assignNode.OperatorPosition);
+                                break;
+                            }
+
+                        case TokenType.Increment:
+                            {
+                                int constantIndex = AddConstant(new Value(1));
+                                Emit(Opcode.Constant, new Value(constantIndex), assignNode.OperatorPosition);
+                                Emit(Opcode.Add, new Value(ValueKind.Void), assignNode.OperatorPosition);
+                                break;
+                            }
+
+                        case TokenType.Decrement:
+                            {
+                                int constantIndex = AddConstant(new Value(1));
+                                Emit(Opcode.Constant, new Value(constantIndex), assignNode.OperatorPosition);
+                                Emit(Opcode.Sub, new Value(ValueKind.Void), assignNode.OperatorPosition);
+                                break;
+                            }
+
+                        case TokenType.Equal:
+                            {
+                                break;
+                            }
+                    }
+
+                    Emit(Opcode.StoreVar, new Value(variable.Slot), assignNode.OperatorPosition);
                     break;
                 }
         }
@@ -111,11 +194,11 @@ class Compiler
 
             case NameExpression nameExpression:
                 {
-                    if (!variables.TryGetValue(nameExpression.Name, out int slot))
+                    if (!variables.TryGetValue(nameExpression.Name, out Variable? variable))
                     {
                         throw new Errno($"'{nameExpression.Name}' does not exist", expression.Position, ErrorLocation.Compiler);
                     }
-                    Emit(Opcode.LoadVar, new Value(slot), nameExpression.Position);
+                    Emit(Opcode.LoadVar, new Value(variable.Slot), nameExpression.Position);
                     break;
                 }
 
@@ -250,5 +333,10 @@ class Compiler
             case ValueKind.String: write.Write(value.StringValue); break;
             case ValueKind.Bool: write.Write(value.BoolValue); break;
         }
+    }
+
+    public void Print()
+    {
+        instructions.ForEach(i => i.Print());
     }
 }
