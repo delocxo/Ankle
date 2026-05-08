@@ -35,9 +35,23 @@ class Lexer
                 continue;
             }
 
-            if (TokenTypeDicts.symbols.TryGetValue(code[i], out TokenType tokenType))
+            if (i + 1 < code.Length)
             {
-                tokens.Add(new Token(new Value(ValueKind.Void), tokenType, currentPosition));
+                char peak = code[i + 1];
+                string value = $"{code[i]}{peak}";
+
+                if (TokenTypeDicts.doubleSymbols.TryGetValue(value, out TokenType doubleSymbolType))
+                {
+                    tokens.Add(new Token(new Value(value), doubleSymbolType, currentPosition));
+                    Next();
+                    Next();
+                    continue;
+                }
+            }
+
+            if (TokenTypeDicts.symbols.TryGetValue(code[i], out TokenType symboleType))
+            {
+                tokens.Add(new Token(new Value(ValueKind.Void), symboleType, currentPosition));
                 Next();
                 continue;
             }

@@ -31,3 +31,19 @@ class PrintNode : Node
         Expression = expression;
     }
 }
+
+class IfNode : Node
+{
+    public Expression Expression;
+    public List<Node> Nodes;
+    public bool HasElse;
+    public List<Node> ElseNodes;
+
+    public IfNode(Expression expression, List<Node> nodes, bool hasElse, List<Node> elseNodes, Position position) : base(position)
+    {
+        Expression = expression;
+        Nodes = nodes;
+        HasElse = hasElse;
+        ElseNodes = elseNodes;
+    }
+}

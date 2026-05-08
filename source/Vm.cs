@@ -87,6 +87,11 @@ class Vm
         {
             Instruction instruction = chunk.Instructions[ip++];
 
+            if (ValueOperations(stack, instruction))
+            {
+                continue;
+            }
+
             switch (instruction.Opcode)
             {
                 case Opcode.Constant:
@@ -104,164 +109,6 @@ class Vm
                 case Opcode.StoreVar:
                     {
                         locals[instruction.Value.IntValue] = stack.Pop();
-                        break;
-                    }
-
-                case Opcode.Add:
-                    {
-                        Value right = stack.Pop();
-                        Value left = stack.Pop();
-
-                        switch (right.ValueKind, left.ValueKind)
-                        {
-                            case (ValueKind.Int, ValueKind.Int):
-                                {
-                                    stack.Push(new Value(left.IntValue + right.IntValue));
-                                    break;
-                                }
-
-                            case (ValueKind.Float, ValueKind.Int):
-                                {
-                                    stack.Push(new Value(left.FloatValue + right.IntValue));
-                                    break;
-                                }
-
-                            case (ValueKind.Int, ValueKind.Float):
-                                {
-                                    stack.Push(new Value(left.IntValue + right.FloatValue));
-                                    break;
-                                }
-
-                            case (ValueKind.Float, ValueKind.Float):
-                                {
-                                    stack.Push(new Value(left.FloatValue + right.FloatValue));
-                                    break;
-                                }
-
-                            case (ValueKind.String, ValueKind.String):
-                                {
-                                    stack.Push(new Value(left.StringValue + right.StringValue));
-                                    break;
-                                }
-
-                            default:
-                                throw new Errno($"'{left.ValueKind} + {left.ValueKind}' are not able to add", instruction.Position, ErrorLocation.VirtualMachine);
-                        }
-
-                        break;
-                    }
-
-                case Opcode.Sub:
-                    {
-                        Value right = stack.Pop();
-                        Value left = stack.Pop();
-
-                        switch (right.ValueKind, left.ValueKind)
-                        {
-                            case (ValueKind.Int, ValueKind.Int):
-                                {
-                                    stack.Push(new Value(left.IntValue - right.IntValue));
-                                    break;
-                                }
-
-                            case (ValueKind.Float, ValueKind.Int):
-                                {
-                                    stack.Push(new Value(left.FloatValue - right.IntValue));
-                                    break;
-                                }
-
-                            case (ValueKind.Int, ValueKind.Float):
-                                {
-                                    stack.Push(new Value(left.IntValue - right.FloatValue));
-                                    break;
-                                }
-
-                            case (ValueKind.Float, ValueKind.Float):
-                                {
-                                    stack.Push(new Value(left.FloatValue - right.FloatValue));
-                                    break;
-                                }
-
-                            default:
-                                throw new Errno($"'{left.ValueKind} - {left.ValueKind}' are not able to subtract", instruction.Position, ErrorLocation.VirtualMachine);
-                        }
-
-                        break;
-                    }
-
-                case Opcode.Mul:
-                    {
-                        Value right = stack.Pop();
-                        Value left = stack.Pop();
-
-                        switch (right.ValueKind, left.ValueKind)
-                        {
-                            case (ValueKind.Int, ValueKind.Int):
-                                {
-                                    stack.Push(new Value(left.IntValue * right.IntValue));
-                                    break;
-                                }
-
-                            case (ValueKind.Float, ValueKind.Int):
-                                {
-                                    stack.Push(new Value(left.FloatValue * right.IntValue));
-                                    break;
-                                }
-
-                            case (ValueKind.Int, ValueKind.Float):
-                                {
-                                    stack.Push(new Value(left.IntValue * right.FloatValue));
-                                    break;
-                                }
-
-                            case (ValueKind.Float, ValueKind.Float):
-                                {
-                                    stack.Push(new Value(left.FloatValue * right.FloatValue));
-                                    break;
-                                }
-
-                            default:
-                                throw new Errno($"'{left.ValueKind} * {left.ValueKind}' are not able to multiply", instruction.Position, ErrorLocation.VirtualMachine);
-                        }
-
-                        break;
-                    }
-
-                case Opcode.Div:
-                    {
-                        Value right = stack.Pop();
-                        Value left = stack.Pop();
-
-                        switch (right.ValueKind, left.ValueKind)
-                        {
-                            case (ValueKind.Int, ValueKind.Int):
-                                {
-                                    stack.Push(new Value(left.IntValue / right.IntValue));
-                                    break;
-                                }
-
-                            case (ValueKind.Float, ValueKind.Int):
-                                {
-                                    stack.Push(new Value(left.FloatValue / right.IntValue));
-                                    break;
-                                }
-
-                            case (ValueKind.Int, ValueKind.Float):
-                                {
-                                    stack.Push(new Value(left.IntValue / right.FloatValue));
-                                    break;
-                                }
-
-                            case (ValueKind.Float, ValueKind.Float):
-                                {
-                                    stack.Push(new Value(left.FloatValue / right.FloatValue));
-                                    break;
-                                }
-
-                            default:
-                                throw new Errno($"'{left.ValueKind} / {left.ValueKind}' are not able to divide", instruction.Position, ErrorLocation.VirtualMachine);
-                        }
-
                         break;
                     }
 
@@ -288,6 +135,26 @@ class Vm
                         break;
                     }
 
+                case Opcode.JumpIfFalse:
+                    {
+                        Value condition = stack.Pop();
+                        if (condition.ValueKind != ValueKind.Bool)
+                        {
+                            throw new Errno("Can not use non bools values on conditions", instruction.Position, ErrorLocation.VirtualMachine);
+                        }
+                        if (!condition.BoolValue)
+                        {
+                            ip = (int)instruction.Value.IntValue;
+                        }
+                        break;
+                    }
+
+                case Opcode.Jump:
+                    {
+                        ip = (int)instruction.Value.IntValue;
+                        break;
+                    }
+
                 case Opcode.Print:
                     stack.Pop().Print();
                     break;
@@ -296,7 +163,427 @@ class Vm
                     {
                         return;
                     }
+
+
             }
         }
+    }
+
+    bool ValueOperations(Stack<Value> stack, Instruction instruction)
+    {
+        switch (instruction.Opcode)
+        {
+            case Opcode.Add:
+                {
+                    Value right = stack.Pop();
+                    Value left = stack.Pop();
+
+                    switch (right.ValueKind, left.ValueKind)
+                    {
+                        case (ValueKind.Int, ValueKind.Int):
+                            {
+                                stack.Push(new Value(left.IntValue + right.IntValue));
+                                break;
+                            }
+
+                        case (ValueKind.Float, ValueKind.Int):
+                            {
+                                stack.Push(new Value(left.FloatValue + right.IntValue));
+                                break;
+                            }
+
+                        case (ValueKind.Int, ValueKind.Float):
+                            {
+                                stack.Push(new Value(left.IntValue + right.FloatValue));
+                                break;
+                            }
+
+                        case (ValueKind.Float, ValueKind.Float):
+                            {
+                                stack.Push(new Value(left.FloatValue + right.FloatValue));
+                                break;
+                            }
+
+                        case (ValueKind.String, ValueKind.String):
+                            {
+                                stack.Push(new Value(left.StringValue + right.StringValue));
+                                break;
+                            }
+
+                        default:
+                            throw new Errno($"'{left.ValueKind} + {left.ValueKind}' are not able to add", instruction.Position, ErrorLocation.VirtualMachine);
+                    }
+
+                    return true;
+                }
+
+            case Opcode.Sub:
+                {
+                    Value right = stack.Pop();
+                    Value left = stack.Pop();
+
+                    switch (right.ValueKind, left.ValueKind)
+                    {
+                        case (ValueKind.Int, ValueKind.Int):
+                            {
+                                stack.Push(new Value(left.IntValue - right.IntValue));
+                                break;
+                            }
+
+                        case (ValueKind.Float, ValueKind.Int):
+                            {
+                                stack.Push(new Value(left.FloatValue - right.IntValue));
+                                break;
+                            }
+
+                        case (ValueKind.Int, ValueKind.Float):
+                            {
+                                stack.Push(new Value(left.IntValue - right.FloatValue));
+                                break;
+                            }
+
+                        case (ValueKind.Float, ValueKind.Float):
+                            {
+                                stack.Push(new Value(left.FloatValue - right.FloatValue));
+                                break;
+                            }
+
+                        default:
+                            throw new Errno($"'{left.ValueKind} - {left.ValueKind}' are not able to subtract", instruction.Position, ErrorLocation.VirtualMachine);
+                    }
+
+                    return true;
+                }
+
+            case Opcode.Mul:
+                {
+                    Value right = stack.Pop();
+                    Value left = stack.Pop();
+
+                    switch (right.ValueKind, left.ValueKind)
+                    {
+                        case (ValueKind.Int, ValueKind.Int):
+                            {
+                                stack.Push(new Value(left.IntValue * right.IntValue));
+                                break;
+                            }
+
+                        case (ValueKind.Float, ValueKind.Int):
+                            {
+                                stack.Push(new Value(left.FloatValue * right.IntValue));
+                                break;
+                            }
+
+                        case (ValueKind.Int, ValueKind.Float):
+                            {
+                                stack.Push(new Value(left.IntValue * right.FloatValue));
+                                break;
+                            }
+
+                        case (ValueKind.Float, ValueKind.Float):
+                            {
+                                stack.Push(new Value(left.FloatValue * right.FloatValue));
+                                break;
+                            }
+
+                        default:
+                            throw new Errno($"'{left.ValueKind} * {left.ValueKind}' are not able to multiply", instruction.Position, ErrorLocation.VirtualMachine);
+                    }
+
+                    return true;
+                }
+
+            case Opcode.Div:
+                {
+                    Value right = stack.Pop();
+                    Value left = stack.Pop();
+
+                    switch (right.ValueKind, left.ValueKind)
+                    {
+                        case (ValueKind.Int, ValueKind.Int):
+                            {
+                                stack.Push(new Value(left.IntValue / right.IntValue));
+                                break;
+                            }
+
+                        case (ValueKind.Float, ValueKind.Int):
+                            {
+                                stack.Push(new Value(left.FloatValue / right.IntValue));
+                                break;
+                            }
+
+                        case (ValueKind.Int, ValueKind.Float):
+                            {
+                                stack.Push(new Value(left.IntValue / right.FloatValue));
+                                break;
+                            }
+
+                        case (ValueKind.Float, ValueKind.Float):
+                            {
+                                stack.Push(new Value(left.FloatValue / right.FloatValue));
+                                break;
+                            }
+
+                        default:
+                            throw new Errno($"'{left.ValueKind} / {left.ValueKind}' are not able to divide", instruction.Position, ErrorLocation.VirtualMachine);
+                    }
+
+                    return true;
+                }
+
+            case Opcode.Equals:
+                {
+                    Value right = stack.Pop();
+                    Value left = stack.Pop();
+
+                    switch (right.ValueKind, left.ValueKind)
+                    {
+                        case (ValueKind.Int, ValueKind.Int):
+                            {
+                                stack.Push(new Value(left.IntValue == right.IntValue));
+                                break;
+                            }
+
+                        case (ValueKind.Float, ValueKind.Int):
+                            {
+                                stack.Push(new Value(left.FloatValue == right.IntValue));
+                                break;
+                            }
+
+                        case (ValueKind.Int, ValueKind.Float):
+                            {
+                                stack.Push(new Value(left.IntValue == right.FloatValue));
+                                break;
+                            }
+
+                        case (ValueKind.Float, ValueKind.Float):
+                            {
+                                stack.Push(new Value(left.FloatValue == right.FloatValue));
+                                break;
+                            }
+
+                        case (ValueKind.String, ValueKind.String):
+                            {
+                                stack.Push(new Value(left.StringValue == right.StringValue));
+                                break;
+                            }
+
+                        case (ValueKind.Bool, ValueKind.Bool):
+                            {
+                                stack.Push(new Value(left.BoolValue == right.BoolValue));
+                                break;
+                            }
+
+                        default:
+                            throw new Errno($"'{left.ValueKind} == {left.ValueKind}' are not able to be compared", instruction.Position, ErrorLocation.VirtualMachine);
+                    }
+
+                    return true;
+                }
+
+            case Opcode.NotEquals:
+                {
+                    Value right = stack.Pop();
+                    Value left = stack.Pop();
+
+                    switch (right.ValueKind, left.ValueKind)
+                    {
+                        case (ValueKind.Int, ValueKind.Int):
+                            {
+                                stack.Push(new Value(left.IntValue != right.IntValue));
+                                break;
+                            }
+
+                        case (ValueKind.Float, ValueKind.Int):
+                            {
+                                stack.Push(new Value(left.FloatValue != right.IntValue));
+                                break;
+                            }
+
+                        case (ValueKind.Int, ValueKind.Float):
+                            {
+                                stack.Push(new Value(left.IntValue != right.FloatValue));
+                                break;
+                            }
+
+                        case (ValueKind.Float, ValueKind.Float):
+                            {
+                                stack.Push(new Value(left.FloatValue != right.FloatValue));
+                                break;
+                            }
+
+                        case (ValueKind.String, ValueKind.String):
+                            {
+                                stack.Push(new Value(left.StringValue != right.StringValue));
+                                break;
+                            }
+
+                        case (ValueKind.Bool, ValueKind.Bool):
+                            {
+                                stack.Push(new Value(left.BoolValue != right.BoolValue));
+                                break;
+                            }
+
+                        default:
+                            throw new Errno($"'{left.ValueKind} != {left.ValueKind}' are not able to be compared", instruction.Position, ErrorLocation.VirtualMachine);
+                    }
+
+                    return true;
+                }
+
+            case Opcode.LeftAngle:
+                {
+                    Value right = stack.Pop();
+                    Value left = stack.Pop();
+
+                    switch (right.ValueKind, left.ValueKind)
+                    {
+                        case (ValueKind.Int, ValueKind.Int):
+                            {
+                                stack.Push(new Value(left.IntValue < right.IntValue));
+                                break;
+                            }
+
+                        case (ValueKind.Float, ValueKind.Int):
+                            {
+                                stack.Push(new Value(left.FloatValue < right.IntValue));
+                                break;
+                            }
+
+                        case (ValueKind.Int, ValueKind.Float):
+                            {
+                                stack.Push(new Value(left.IntValue < right.FloatValue));
+                                break;
+                            }
+
+                        case (ValueKind.Float, ValueKind.Float):
+                            {
+                                stack.Push(new Value(left.FloatValue < right.FloatValue));
+                                break;
+                            }
+
+                        default:
+                            throw new Errno($"'{left.ValueKind} < {left.ValueKind}' can not be compared", instruction.Position, ErrorLocation.VirtualMachine);
+                    }
+
+                    return true;
+                }
+
+            case Opcode.RightAngle:
+                {
+                    Value right = stack.Pop();
+                    Value left = stack.Pop();
+
+                    switch (right.ValueKind, left.ValueKind)
+                    {
+                        case (ValueKind.Int, ValueKind.Int):
+                            {
+                                stack.Push(new Value(left.IntValue > right.IntValue));
+                                break;
+                            }
+
+                        case (ValueKind.Float, ValueKind.Int):
+                            {
+                                stack.Push(new Value(left.FloatValue > right.IntValue));
+                                break;
+                            }
+
+                        case (ValueKind.Int, ValueKind.Float):
+                            {
+                                stack.Push(new Value(left.IntValue > right.FloatValue));
+                                break;
+                            }
+
+                        case (ValueKind.Float, ValueKind.Float):
+                            {
+                                stack.Push(new Value(left.FloatValue > right.FloatValue));
+                                break;
+                            }
+
+                        default:
+                            throw new Errno($"'{left.ValueKind} > {left.ValueKind}' can not be compared", instruction.Position, ErrorLocation.VirtualMachine);
+                    }
+
+                    return true;
+                }
+
+            case Opcode.LeftAngleEquals:
+                {
+                    Value right = stack.Pop();
+                    Value left = stack.Pop();
+
+                    switch (right.ValueKind, left.ValueKind)
+                    {
+                        case (ValueKind.Int, ValueKind.Int):
+                            {
+                                stack.Push(new Value(left.IntValue <= right.IntValue));
+                                break;
+                            }
+
+                        case (ValueKind.Float, ValueKind.Int):
+                            {
+                                stack.Push(new Value(left.FloatValue <= right.IntValue));
+                                break;
+                            }
+
+                        case (ValueKind.Int, ValueKind.Float):
+                            {
+                                stack.Push(new Value(left.IntValue <= right.FloatValue));
+                                break;
+                            }
+
+                        case (ValueKind.Float, ValueKind.Float):
+                            {
+                                stack.Push(new Value(left.FloatValue <= right.FloatValue));
+                                break;
+                            }
+
+                        default:
+                            throw new Errno($"'{left.ValueKind} <= {left.ValueKind}' can not be compared", instruction.Position, ErrorLocation.VirtualMachine);
+                    }
+
+                    return true;
+                }
+
+            case Opcode.RightAngleEquals:
+                {
+                    Value right = stack.Pop();
+                    Value left = stack.Pop();
+
+                    switch (right.ValueKind, left.ValueKind)
+                    {
+                        case (ValueKind.Int, ValueKind.Int):
+                            {
+                                stack.Push(new Value(left.IntValue >= right.IntValue));
+                                break;
+                            }
+
+                        case (ValueKind.Float, ValueKind.Int):
+                            {
+                                stack.Push(new Value(left.FloatValue >= right.IntValue));
+                                break;
+                            }
+
+                        case (ValueKind.Int, ValueKind.Float):
+                            {
+                                stack.Push(new Value(left.IntValue >= right.FloatValue));
+                                break;
+                            }
+
+                        case (ValueKind.Float, ValueKind.Float):
+                            {
+                                stack.Push(new Value(left.FloatValue >= right.FloatValue));
+                                break;
+                            }
+
+                        default:
+                            throw new Errno($"'{left.ValueKind} >= {left.ValueKind}' can not be compared", instruction.Position, ErrorLocation.VirtualMachine);
+                    }
+
+                    return true;
+                }
+        }
+
+        return false;
     }
 }

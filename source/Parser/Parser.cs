@@ -29,6 +29,11 @@ class Parser
                 nodes.Add(ParsePrint());
                 continue;
             }
+            else if (Check(TokenType.If))
+            {
+                nodes.Add(ParseIf());
+                continue;
+            }
 
             Next();
         }
@@ -45,7 +50,7 @@ class Parser
         string identifier = tokens[i].Value.StringValue;
         Consume(TokenType.Identifier, "Expected identifier");
 
-        Consume(TokenType.Equals, "Expected '='");
+        Consume(TokenType.Equal, "Expected '='");
 
         Expression expression = ParseExpression();
 
@@ -69,6 +74,65 @@ class Parser
         Consume(TokenType.Semicolon, "Expected ';'");
 
         return new PrintNode(expression, position);
+    }
+
+    IfNode ParseIf()
+    {
+        Position position = tokens[i].Position;
+
+        Consume(TokenType.If);
+
+        Consume(TokenType.LeftParen, "Expected '('");
+
+        Expression expression = ParseExpression();
+
+        Consume(TokenType.RightParen, "Expected ')'");
+
+        List<Node> block = ParseBlock();
+
+        if (Match(TokenType.Else))
+        {
+            List<Node> elseBlock = ParseBlock();
+            return new IfNode(expression, block, true, elseBlock, position);
+        }
+
+        return new IfNode(expression, block, false, new List<Node>(), position);
+    }
+
+    List<Node> ParseBlock()
+    {
+        Consume(TokenType.LeftCurly, "Expected '{'");
+
+        int start = i;
+        int depth = 1;
+
+        while (depth > 0)
+        {
+            if (Check(TokenType.EOF))
+            {
+                throw new Errno("Expected '}'", tokens[i].Position, ErrorLocation.Parser);
+            }
+
+            if (Check(TokenType.LeftCurly))
+            {
+                depth++;
+            }
+
+            if (Check(TokenType.RightCurly))
+            {
+                depth--;
+                if (depth == 0) break;
+            }
+
+            Next();
+        }
+
+        List<Token> blockTokens = tokens.GetRange(start, i - start);
+        blockTokens.Add(new Token(new Value(ValueKind.Void), TokenType.EOF, tokens[i].Position));
+
+        Consume(TokenType.RightCurly);
+
+        return new Parser(blockTokens).Parse();
     }
 
     Expression ParsePrimary()
@@ -142,9 +206,45 @@ class Parser
         return left;
     }
 
+    Expression ParseComparison()
+    {
+        Expression left = ParseTerm();
+
+        while (tokens[i].Type is TokenType.LeftAngle or TokenType.RightAngle or TokenType.LeftAngleEquals or TokenType.RightAngleEquals)
+        {
+            Token op = tokens[i];
+
+            Next();
+
+            Expression right = ParseTerm();
+
+            left = new BinaryExpression(left, right, op.Type, op.Position);
+        }
+
+        return left;
+    }
+
+    Expression ParseEquality()
+    {
+        Expression left = ParseComparison();
+
+        while (tokens[i].Type is TokenType.Equals or TokenType.NotEquals)
+        {
+            Token op = tokens[i];
+
+            Next();
+
+            Expression right = ParseComparison();
+
+            left = new BinaryExpression(left, right, op.Type, op.Position);
+        }
+
+        return left;
+    }
+
     Expression ParseExpression()
     {
-        return ParseTerm();
+        return ParseEquality();
     }
 
     void Consume(TokenType tokenType, string message = "N\\A")
@@ -165,7 +265,7 @@ class Parser
 
     bool Check(TokenType tokenType)
     {
-        if (AtEnd()) return false;
+        if (i >= tokens.Count) return false;
         return tokens[i].Type == tokenType;
     }
 

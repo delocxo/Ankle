@@ -1,2 +1,5 @@
-let x = -100;
+if (true){
+    let x = 100;
+}
+
 print(x);

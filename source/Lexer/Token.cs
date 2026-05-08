@@ -10,18 +10,29 @@ public enum TokenType
     Let,
     Const,
     Print,
+    If,
+    Else,
     EOF,
 
     LeftParen,
     RightParen,
     Semicolon,
-    Equals,
+    Equal,
     Add,
     Sub,
     Mul,
     Div,
     Mod,
-    Exclamation
+    Exclamation,
+    Equals,
+    NotEquals,
+    LeftAngle,
+    RightAngle,
+    LeftAngleEquals,
+    RightAngleEquals,
+    LeftCurly,
+    RightCurly,
+
 }
 
 struct Token
@@ -61,7 +72,9 @@ public static class TokenTypeDicts
     {
         { "let", TokenType.Let },
         { "const", TokenType.Const },
-        { "print", TokenType.Print }
+        { "print", TokenType.Print },
+        {"if", TokenType.If},
+        {"else", TokenType.Else}
     };
 
     public static Dictionary<char, TokenType> symbols = new Dictionary<char, TokenType>()
@@ -74,7 +87,19 @@ public static class TokenTypeDicts
         { '*', TokenType.Mul },
         { '/', TokenType.Div },
         { '%', TokenType.Mod },
-        { '=', TokenType.Equals },
-        { '!', TokenType.Exclamation }
+        { '=', TokenType.Equal },
+        { '!', TokenType.Exclamation },
+        {'<', TokenType.LeftAngle},
+        {'>', TokenType.RightAngle},
+        {'{', TokenType.LeftCurly},
+        {'}', TokenType.RightCurly}
+    };
+
+    public static Dictionary<string, TokenType> doubleSymbols = new Dictionary<string, TokenType>()
+    {
+        {"==", TokenType.Equals},
+        {"!=", TokenType.NotEquals},
+        {"<=", TokenType.LeftAngleEquals},
+        {">=", TokenType.RightAngleEquals}
     };
 }

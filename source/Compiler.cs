@@ -16,7 +16,15 @@ class Compiler
         {
             CompileStatement(node);
         }
-        Emit(Opcode.Halt, new Value(ValueKind.Void), nodes[nodes.Count - 1].Position);
+        Emit(Opcode.Halt, new Value(ValueKind.Void), new Position(0, 0));
+    }
+
+    void CompileBlock(List<Node> nodes)
+    {
+        foreach (Node node in nodes)
+        {
+            CompileStatement(node);
+        }
     }
 
     void CompileStatement(Node node)
@@ -44,7 +52,50 @@ class Compiler
                     Emit(Opcode.Print, new Value(ValueKind.Void), node.Position);
                     break;
                 }
+
+            case IfNode ifNode:
+                {
+                    CompileExpression(ifNode.Expression);
+                    int jumpToElse = EmitJumpIfFalse(0, ifNode.Position);
+
+                    CompileBlock(ifNode.Nodes);
+
+                    if (ifNode.HasElse)
+                    {
+                        int jumpToEnd = EmitJump(0, ifNode.Position);
+                        int elseStart = instructions.Count;
+                        PatchJump(jumpToElse, elseStart);
+                        CompileBlock(ifNode.ElseNodes);
+                        int afterIf = instructions.Count;
+                        PatchJump(jumpToEnd, afterIf);
+                    }
+                    else
+                    {
+                        int afterIf = instructions.Count;
+                        PatchJump(jumpToElse, afterIf);
+                    }
+                    break;
+                }
         }
+    }
+
+    int EmitJumpIfFalse(int target, Position position)
+    {
+        Instruction instruction = new Instruction(Opcode.JumpIfFalse, new Value(target), position);
+        instructions.Add(instruction);
+        return instructions.IndexOf(instruction);
+    }
+
+    int EmitJump(int target, Position position)
+    {
+        Instruction instruction = new Instruction(Opcode.Jump, new Value(target), position);
+        instructions.Add(instruction);
+        return instructions.IndexOf(instruction);
+    }
+
+    void PatchJump(int index, int target)
+    {
+        instructions[index].Value = new Value(target);
     }
 
     void CompileExpression(Expression expression)
@@ -114,6 +165,30 @@ class Compiler
                         case TokenType.Mod:
                             Emit(Opcode.Mod, new Value(ValueKind.Void), expression.Position);
                             break;
+
+                        case TokenType.Equals:
+                            Emit(Opcode.Equals, new Value(ValueKind.Void), expression.Position);
+                            break;
+
+                        case TokenType.NotEquals:
+                            Emit(Opcode.NotEquals, new Value(ValueKind.Void), expression.Position);
+                            break;
+
+                        case TokenType.LeftAngle:
+                            Emit(Opcode.LeftAngle, new Value(ValueKind.Void), expression.Position);
+                            break;
+
+                        case TokenType.RightAngle:
+                            Emit(Opcode.RightAngle, new Value(ValueKind.Void), expression.Position);
+                            break;
+
+                        case TokenType.LeftAngleEquals:
+                            Emit(Opcode.LeftAngleEquals, new Value(ValueKind.Void), expression.Position);
+                            break;
+
+                        case TokenType.RightAngleEquals:
+                            Emit(Opcode.RightAngleEquals, new Value(ValueKind.Void), expression.Position);
+                            break;
                     }
 
                     break;
@@ -138,7 +213,7 @@ class Compiler
 
     public void Save()
     {
-        using var file = File.OpenWrite(target);
+        using var file = File.Create(target);
         using var write = new BinaryWriter(file);
 
         write.Write(constants.Count);
