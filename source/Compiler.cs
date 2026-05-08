@@ -70,7 +70,22 @@ class Compiler
 
             case UnaryExpression unaryExpression:
                 {
-                    CompileExpression()
+                    CompileExpression(unaryExpression.Right);
+                    switch (unaryExpression.Operator)
+                    {
+                        case TokenType.Sub:
+                            {
+                                Emit(Opcode.Neg, new Value(ValueKind.Void), unaryExpression.Position);
+                                break;
+                            }
+
+                        case TokenType.Exclamation:
+                            {
+                                Emit(Opcode.Not, new Value(ValueKind.Void), unaryExpression.Position);
+                                break;
+                            }
+                    }
+                    break;
                 }
 
             case BinaryExpression binaryExpression:

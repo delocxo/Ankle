@@ -9,6 +9,7 @@ enum Opcode : byte
     Div,
     Mod,
     Neg,
+    Not,
     Print,
     Halt = 255,
 }

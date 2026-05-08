@@ -6,7 +6,7 @@
 
     List<Token> tokens = lexer.Tokenize();
 
-    tokens.ForEach(Token.Print);
+    // tokens.ForEach(Token.Print);
 
     Parser parser = new Parser(tokens);
 
@@ -19,6 +19,7 @@
     compiler.Save();
 
     Vm vm = new Vm("main.anklec");
+    vm.Run();
 }
 catch (Errno err)
 {

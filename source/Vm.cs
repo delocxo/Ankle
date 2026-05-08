@@ -265,6 +265,29 @@ class Vm
                         break;
                     }
 
+                case Opcode.Neg:
+                    {
+                        Value value = stack.Pop();
+                        switch (value.ValueKind)
+                        {
+                            case ValueKind.Int: stack.Push(new Value(-value.IntValue)); break;
+                            case ValueKind.Float: stack.Push(new Value(-value.FloatValue)); break;
+                            default: throw new Errno("Can only negate ints or floats", instruction.Position, ErrorLocation.VirtualMachine);
+                        }
+                        break;
+                    }
+
+                case Opcode.Not:
+                    {
+                        Value value = stack.Pop();
+                        switch (value.ValueKind)
+                        {
+                            case ValueKind.Bool: stack.Push(new Value(!value.BoolValue)); break;
+                            default: throw new Errno("Can only flip bools", instruction.Position, ErrorLocation.VirtualMachine);
+                        }
+                        break;
+                    }
+
                 case Opcode.Print:
                     stack.Pop().Print();
                     break;

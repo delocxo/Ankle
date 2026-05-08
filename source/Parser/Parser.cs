@@ -108,7 +108,7 @@ class Parser
 
     Expression ParseFactor()
     {
-        Expression left = ParsePrimary();
+        Expression left = ParseUnary();
 
         while (tokens[i].Type is TokenType.Mul or TokenType.Div or TokenType.Mod)
         {
@@ -116,7 +116,7 @@ class Parser
 
             Next();
 
-            Expression right = ParsePrimary();
+            Expression right = ParseUnary();
 
             left = new BinaryExpression(left, right, op.Type, op.Position);
         }
